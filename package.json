@@ -1,6 +1,6 @@
 {
    "name": "malina-esbuild-devserver",
-   "version": "0.0.2",
+   "version": "0.0.3",
    "description": "Just simple SPA",
    "main": "index.js",
    "scripts": {

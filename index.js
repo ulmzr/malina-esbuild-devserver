@@ -134,7 +134,7 @@ function watching() {
 function addDeleteFile(pathname) {
    createRoutes();
    pathname = pathname.replace(/\\/g, "/");
-   if (!pathname.endsWith(".svelte")) return;
+   if (!pathname.endsWith(".xht")) return;
    let dir = /.*(?<=\/)/.exec(pathname)[0];
    if (dir[dir.length - 1] === "/") dir = dir.slice(0, -1);
    let _files = getCmp(dir);
