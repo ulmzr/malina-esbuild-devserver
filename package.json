@@ -1,6 +1,6 @@
 {
    "name": "malina-esbuild-devserver",
-   "version": "0.0.3",
+   "version": "0.0.5",
    "description": "Just simple SPA",
    "main": "index.js",
    "scripts": {
@@ -18,10 +18,9 @@
    },
    "homepage": "https://github.com/ulmzr/malina-esbuild-devserver#readme",
    "dependencies": {
-      "devlrserver": "^0.0.4",
+      "devlrserver": "^0.0.6",
       "esbuild": "^0.19.2",
       "esbuild-sass-plugin": "^2.12.0",
-      "sass": "^1.66.1",
-      "spa-trouter": "^2.0.0"
+      "sass": "^1.66.1"
    }
 }
