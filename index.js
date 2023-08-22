@@ -116,14 +116,7 @@ function routeAuto() {
       .on("change", (fpath) => createPagesJS(fpath))
       .on("add", (fpath) => createPagesJS(fpath))
       .on("unlink", (fpath) => createPagesJS(fpath))
-      .on("unlinkDir", (dir) => createRoutes(dir))
-      .on("addDir", (dir) => {
-         if (!dir.includes("pages") || !ready) return;
-         dir = dir.replace(/\\/g, "/");
-         let content = 'export * from "../components";\nexport * from "../modules";\n';
-         if (dir.match(/src\/pages\/\w+/)) content = `export * from "../"`;
-         write(dir + "/index.js", content);
-      });
+      .on("unlinkDir", (dir) => createRoutes(dir));
 }
 
 function createIndexXht(pathname) {
