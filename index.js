@@ -22,14 +22,16 @@ const write = (filepath, content) => fs.writeFileSync(filepath, content, "utf8")
 
 let ready;
 
-serve({
-   port,
-   outdir,
-   watch: watchFiles,
-});
+if (watch) {
+   serve({
+      port,
+      outdir,
+      watch: watchFiles,
+   });
+   routeAuto();
+}
 
 buildApp();
-routeAuto();
 
 async function buildApp() {
    const ctx = await esbuild.context({
@@ -42,6 +44,7 @@ async function buildApp() {
       ...esbuildConfig,
    });
    ctx.watch();
+   console.log("Build...!");
    if (!watch) ctx.dispose();
 }
 
