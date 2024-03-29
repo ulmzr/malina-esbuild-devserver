@@ -1,2 +1,2 @@
-# Malina with esbuild
-Just simple SPA
+# Malina.js with esbuild
+Just simple SPA server for Malina.js development.
