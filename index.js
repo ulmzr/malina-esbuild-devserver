@@ -53,8 +53,8 @@ if (!build) {
    </script></head>`;
       try {
          const indexPath = path.join(cwd, public, "index.html");
-         const indexContent = await fsp.readFile(indexPath, "utf8");
-         data = indexContent.replace("</head>", reloadScript);
+         let data = await fsp.readFile(indexPath, "utf8");
+         data = dev ? data.replace("</head>", reloadScript) : data;
          res.writeHead(200, { "Content-Type": "text/html" });
          res.end(data);
          if (dev) console.log("🌏", "index.html");
