@@ -1,62 +1,155 @@
-const serve = require("devlrserver");
+const http = require("http");
+const fsp = require("fs").promises;
+const path = require("path");
+const WebSocket = require("ws");
+const chokidar = require("chokidar");
+
+const malina = require("malinajs");
 const esbuild = require("esbuild");
 const { sassPlugin } = require("esbuild-sass-plugin");
-const malina = require("malinajs");
-const fs = require("fs");
-const fsp = require("fs/promises");
-const path = require("path");
 
 const cwd = process.cwd();
-const watch = process.argv.includes("-w");
-const env = fs.existsSync(path.join(cwd, "config.js")) ? require(path.join(cwd, "config.js")) : {};
-const port = env.port || 8080;
-const watchFiles = env.watch || "*.js";
-const outdir = env.outdir || "public";
-const esbuildConfig = env.esbuild || {};
-const autoroute = env.autoroute;
+const dev = process.argv.includes("-watch");
+const build = process.argv.includes("-build");
+const config = require(path.join(cwd, "config.js")) || {};
+const port = config.port || 3000;
+const public = config.public || "public";
+const esbuildConfig = config.esbuild || {};
+const env = config.env || {};
 
-const regex = /(.+[^\/])\/(\+.*.xht)/;
-const regexC = /(.+[^\/])\/([A-Z].*.xht)/;
-const exist = (filepath) => fs.existsSync(filepath);
-const write = (filepath, content) => fs.writeFileSync(filepath, content, "utf8");
-
-let ready;
-
-if (watch) {
-   serve({
-      port,
-      outdir,
-      watch: watchFiles,
+if (!build) {
+   const server = http.createServer(async (req, res) => {
+      const filePath = path.join(cwd, public, req.url === "/" ? "index.html" : req.url); // Get the file path based on the requested URL
+      const contentType = getContentType(filePath); // Get the content type based on the file extension
+      if (filePath.endsWith("index.html")) serveIndexHtml(res);
+      else
+         try {
+            // Read the file
+            const data = await fsp.readFile(filePath);
+            // Serve the requested file
+            res.writeHead(200, { "Content-Type": contentType });
+            res.end(data);
+            if (dev) console.log("🌏", path.basename(filePath));
+         } catch (error) {
+            // If the file does not exist or there's an error reading it, serve index.html instead
+            serveIndexHtml(res);
+         }
    });
-   routeAuto();
+
+   // Function to serve index.html
+   async function serveIndexHtml(res) {
+      const reloadScript = `<script>
+   let ws = 'ws://' + window.location.host;
+   let sock = new WebSocket(ws)
+   sock.onmessage = () => location.reload()
+   sock.onclose = function(){
+      reconnect()
+      function reconnect(){
+         sock = new WebSocket(ws)
+         sock.onclose = () => setTimeout(reconnect, 2000)
+         sock.onopen = () => location.reload()
+      }
+   }
+   </script></head>`;
+      try {
+         const indexPath = path.join(cwd, public, "index.html");
+         const indexContent = await fsp.readFile(indexPath, "utf8");
+         data = indexContent.replace("</head>", reloadScript);
+         res.writeHead(200, { "Content-Type": "text/html" });
+         res.end(data);
+         if (dev) console.log("🌏", "index.html");
+      } catch (error) {
+         res.writeHead(500, { "Content-Type": "text/plain" });
+         res.end("Internal Server Error");
+      }
+   }
+
+   if (dev) compile();
+
+   // Start the server
+   server.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+      if (dev) {
+         const wss = new WebSocket.Server({ server });
+         const publicFolderPath = path.join(cwd, "public");
+
+         // Initialize chokidar to watch for file changes
+         const watcher = chokidar.watch(publicFolderPath, { persistent: true });
+
+         watcher.on("change", (filePath) => {
+            // Notify all clients about the file change
+            wss.clients.forEach((client) => {
+               if (client.readyState === WebSocket.OPEN) {
+                  client.send("reload");
+               }
+            });
+         });
+      }
+   });
+
+   // Function to get content type based on file extension
+   function getContentType(filePath) {
+      const mime = {
+         html: "text/html",
+         css: "text/css",
+         js: "text/javascript",
+         json: "application/json",
+         ico: "image/ico",
+         png: "image/png",
+         jpg: "image/jpg",
+         jpeg: "image/jpeg",
+         webp: "image/webp",
+         gif: "image/gif",
+         svg: "image/svg+xml",
+         mp3: "audio/mpeg",
+         wav: "audio/wav",
+         ogg: "audio/ogg",
+         mp4: "video/mp4",
+         webm: "video/webm",
+         ogv: "video/ogg",
+         pdf: "application/pdf",
+      };
+      const extname = path.extname(filePath)?.slice(1);
+      return mime[extname] || "application/octet-stream";
+   }
+} else {
+   compile();
 }
 
-buildApp();
-
-async function buildApp() {
+async function compile() {
    const ctx = await esbuild.context({
       entryPoints: ["src/main.js"],
+      outfile: public + "/main.js",
       bundle: true,
-      minify: !watch,
-      format: "iife",
-      outdir,
+      minify: !dev,
       plugins: [malinaPlugin(), sassPlugin()],
+      define: {
+         process: JSON.stringify({
+            env: {
+               production: !dev,
+               ...env,
+            },
+         }),
+      },
       ...esbuildConfig,
    });
-   ctx.watch();
-   console.log("Build...!");
-   if (!watch) ctx.dispose();
+
+   await ctx.watch();
+   if (!dev) await ctx.dispose();
 }
 
-function malinaPlugin() {
+function malinaPlugin(options = {}) {
    const cssModules = new Map();
-   console.log("! Malina.js", malina.version);
+
+   if (options.displayVersion !== false) console.log("! Malina.js", malina.version);
+
    return {
       name: "malina-plugin",
       setup(build) {
          build.onResolve({ filter: /^malinajs$/ }, async (args) => {
             const runtime = await build.resolve("malinajs/runtime.js", {
                resolveDir: args.resolveDir,
+               kind: args.kind,
             });
             return {
                path: runtime.path,
@@ -77,6 +170,7 @@ function malinaPlugin() {
             let ctx = await malina.compile(source, {
                path: args.path,
                name: args.path.match(/([^/\\]+)\.\w+$/)[1],
+               ...options,
             });
 
             let code = ctx.result;
@@ -100,132 +194,4 @@ function malinaPlugin() {
          });
       },
    };
-}
-
-function routeAuto() {
-   if (!autoroute) return;
-   createRoutes();
-   const chokidar = require("chokidar");
-   chokidar
-      .watch(["src/components", "src/modules", "src/pages"], {
-         ignored: /(^|[\/\\])\../,
-         persistent: true,
-         cwd,
-      })
-      .on("ready", () => (ready = true))
-      .on("change", (fpath) => createPagesJS(fpath))
-      .on("add", (fpath) => createPagesJS(fpath))
-      .on("unlink", (fpath) => createPagesJS(fpath))
-      .on("unlinkDir", (dir) => createRoutes(dir));
-}
-
-function createIndexXht(pathname) {
-   pathname = pathname.replaceAll("\\", "/");
-   let isMatch = pathname.match(regex);
-   if (isMatch) {
-      let dirname = isMatch[1];
-      if (!exist(dirname)) return;
-      if (!exist(path.join(dirname, "Index.xht"))) {
-         write(
-            path.join(dirname, "Index.xht"),
-            `<script>
-\timport * as pages from "./pages";
-\texport let params = {};\n
-\tlet page = pages.home;\n
-\t$: params, page = !params.page ? pages.home : pages[params.page?.replace(/[-+:]/g, "_")];
-</script>\n
-{#if page}
-\t<component:page/>
-{:else}
-\t<E404/>
-{/if}`
-         );
-         createRoutes();
-      }
-   }
-}
-
-function createPagesJS(pathname) {
-   if (!ready) return;
-   pathname = pathname.replaceAll("\\", "/");
-   if (pathname.startsWith("src/pages")) {
-      let isMatch = pathname.match(regex);
-      if (isMatch) {
-         let dirname = isMatch[1];
-         if (!exist(dirname)) return;
-         if (!exist(path.join(dirname, "+home.xht"))) {
-            write(path.join(dirname, "+home.xht"), "");
-         }
-         let files = getFiles(dirname);
-         files = files.filter((file) => file.match(regex));
-         files = files.map((file) => {
-            let filename = file.match(regex)[2];
-            let cmp = filename.slice(1).replace(".xht", "").replace(/[-+:]/g, "_");
-            return `export { default as ${cmp} } from "./${filename}"\n`;
-         });
-         write(path.join(dirname, "pages.js"), files.join(""));
-         createIndexXht(pathname);
-      }
-   } else if (pathname.startsWith("src/components") || pathname.startsWith("src/modules")) {
-      let isMatch = pathname.match(regexC);
-      if (isMatch) {
-         let dirname = isMatch[1];
-         if (!exist(dirname)) return;
-         let files = getFiles(dirname);
-         files = files.filter((file) => file.match(regexC));
-         files = files.map((file) => {
-            let filename = file.match(regexC)[2];
-            let cmp = filename.replace(".xht", "").replace(/[-+:]/g, "_");
-            return `export { default as ${cmp} } from "./${filename}"\n`;
-         });
-         write(path.join(dirname, "index.js"), files.join(""));
-      }
-   }
-}
-
-function getFiles(dir, recursive = 0) {
-   let res = [];
-   let list = fs.readdirSync(dir);
-   list.forEach(function (file) {
-      file = dir + "/" + file;
-      let stat = fs.statSync(file);
-      if (stat && stat.isDirectory() && recursive) res = res.concat(getFiles(file, recursive));
-      else res.push(file);
-   });
-   res = res.map((x) => {
-      return x.replaceAll("\\", "/");
-   });
-   return res;
-}
-
-function createRoutes(pathname) {
-   if (pathname && !pathname.includes("pages")) return;
-   let files = getFiles("src/pages", 1);
-   files = files.reverse();
-   let result1 = "";
-   let result2 = "\nexport default [\n";
-   files = files = files.map((filepath) => {
-      let filename = filepath.split("/");
-      filename = filename[filename.length - 1];
-      let match = filename.endsWith(".xht") && filename[0].match(/[A-Z]/);
-      if (match) {
-         let cmp1 = filename.replace(".xht", "");
-         let pathname = filepath
-            .replace(/.xht|src\/pages/g, "")
-            .toLowerCase()
-            .replace("index", ":page");
-         let cmp2;
-         if (cmp1 === "Index") {
-            cmp2 = filepath
-               .replace("/" + filename, "")
-               .split("/")
-               .map((x) => x[0].toUpperCase() + x.slice(1));
-            cmp2 = "page" + cmp2.slice(2).join("");
-         }
-         result1 += `import ${cmp2 ? cmp2 : cmp1} from "${filepath.replace("src", ".")}";\n`;
-         result2 += `\t{ path: "${pathname === "/home" ? "/" : pathname}", page: ${cmp2 ? cmp2 : cmp1} },\n`;
-      }
-   });
-   result2 += "]";
-   write("src/routes.js", result1 + result2);
 }
