@@ -22,7 +22,6 @@
       "esbuild": "^0.20.2",
       "esbuild-sass-plugin": "^3.2.0",
       "sass": "^1.72.0",
-      "websocket": "^1.0.34",
       "ws": "^8.16.0"
    }
 }
