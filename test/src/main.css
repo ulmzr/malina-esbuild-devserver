@@ -1,0 +1,40 @@
+*,
+*::before,
+*::after {
+   box-sizing: border-box;
+}
+
+* {
+   padding: 0;
+   margin: 0;
+   font: inherit;
+}
+
+html:focus-within {
+   scroll-behavior: smooth;
+}
+
+body {
+   line-height: 1.5;
+   min-height: 100vh;
+   text-rendering: optimizeSpeed;
+   -webkit-font-smoothing: antialiased;
+}
+
+picture,
+video,
+canvas,
+svg {
+   display: block;
+   max-width: 100%;
+}
+
+img {
+   max-width: 100%;
+   height: auto;
+   vertical-align: middle;
+   font-style: italic;
+   background-repeat: no-repeat;
+   background-size: cover;
+   shape-margin: 0.75rem;
+}

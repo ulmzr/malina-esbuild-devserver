@@ -1,0 +1,16 @@
+/* malinacss:C:/Users/yulmizar/Documents/nodejs/Example/malinajs-template/src/App.malina.css */
+img.mnbrvn5 {
+  display: block;
+  width: 200px;
+  margin: 60px auto;
+  transition: 0.2s;
+}
+h1.mnbrvn5,
+div.mnbrvn5 {
+  text-align: center;
+  min-width: 300px;
+  margin: 40px auto;
+}
+input.mnbrvn5 {
+  font-size: 24px;
+}
