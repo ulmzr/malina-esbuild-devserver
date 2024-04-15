@@ -1,27 +1,27 @@
 {
-   "name": "malinajs-devserver",
-   "version": "0.1.1",
-   "description": "Just simple SPA",
-   "main": "index.js",
-   "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1"
-   },
-   "repository": {
-      "type": "git",
-      "url": "git+https://github.com/ulmzr/malinajs-devserver.git"
-   },
-   "keywords": [],
-   "author": "Yulmizar",
-   "license": "MIT",
-   "bugs": {
-      "url": "https://github.com/ulmzr/malinajs-devserver/issues"
-   },
-   "homepage": "https://github.com/ulmzr/malinajs-devserver#readme",
-   "dependencies": {
-      "chokidar": "^3.6.0",
-      "esbuild": "^0.20.2",
-      "esbuild-sass-plugin": "^3.2.0",
-      "sass": "^1.72.0",
-      "ws": "^8.16.0"
-   }
+    "name": "malinajs-devserver",
+    "version": "0.2.0",
+    "description": "Just simple SPA",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ulmzr/malinajs-devserver.git"
+    },
+    "keywords": [],
+    "author": "Yulmizar",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/ulmzr/malinajs-devserver/issues"
+    },
+    "homepage": "https://github.com/ulmzr/malinajs-devserver#readme",
+    "dependencies": {
+        "chokidar": "^3.6.0",
+        "esbuild": "^0.20.2",
+        "esbuild-sass-plugin": "^3.2.0",
+        "sass": "^1.75.0",
+        "ws": "^8.16.0"
+    }
 }
